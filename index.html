@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Crypto Dashboard</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0f172a; color: #f8fafc; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; min-height: 100vh; }
+        h1 { margin-bottom: 10px; color: #38bdf8; text-align: center; }
+        p.subtitle { color: #94a3b8; margin-bottom: 40px; font-size: 14px; text-align: center; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; width: 100%; max-width: 900px; }
+        .crypto-card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; display: flex; flex-direction: column; align-items: center; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .crypto-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5); border-color: #475569; }
+        .logo-container { width: 50px; height: 50px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center; }
+        .logo-container img { max-width: 100%; max-height: 100%; }
+        .coin-name { font-size: 18px; font-weight: 600; margin-bottom: 5px; }
+        .coin-symbol { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 15px; }
+        .price-box { font-size: 24px; font-weight: bold; color: #10b981; }
+        .loading { color: #fbbf24; font-size: 14px; }
+        .error { color: #ef4444; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <h1>Live Crypto Tracker</h1>
+    <p class="subtitle">Fetching real-time data using Binance API</p>
+
+    <div class="dashboard-grid" id="dashboard"></div>
+
+    <script>
+        const tokens = [
+            { id: 'solana', name: 'Solana', symbol: 'SOL', logo: 'https://cryptologos.cc/logos/solana-sol-logo.svg' },
+            { id: 'binancecoin', name: 'BNB', symbol: 'BNB', logo: 'https://cryptologos.cc/logos/bnb-bnb-logo.svg' },
+            { id: 'cardano', name: 'Cardano', symbol: 'ADA', logo: 'https://cryptologos.cc/logos/cardano-ada-logo.svg' },
+            { id: 'linea', name: 'Linea', symbol: 'LINEA', logo: 'https://raw.githubusercontent.com/Consensys/linea-brand-kit/main/logo/logomark/color/linea-logomark-color.svg' }
+        ];
+
+        const dashboard = document.getElementById('dashboard');
+
+        tokens.forEach(token => {
+            const card = document.createElement('div');
+            card.className = 'crypto-card';
+            card.innerHTML = `
+                <div class="logo-container"><img src="${token.logo}" alt="${token.name} Logo"></div>
+                <div class="coin-name">${token.name}</div>
+                <div class="coin-symbol">${token.symbol}</div>
+                <div class="price-box" id="price-${token.id}"><span class="loading">Fetching...</span></div>
+            `;
+            dashboard.appendChild(card);
+        });
+
+        async function fetchLivePrices() {
+            try {
+                const [solRes, bnbRes, adaRes] = await Promise.all([
+                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=SOLUSDT'),
+                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT'),
+                    fetch('https://api.binance.com/api/v3/ticker/price?symbol=ADAUSDT')
+                ]);
+                
+                if (!solRes.ok || !bnbRes.ok || !adaRes.ok) throw new Error('Binance API response error');
+                
+                const solData = await solRes.json();
+                const bnbData = await bnbRes.json();
+                const adaData = await adaRes.json();
+
+                document.getElementById('price-solana').innerHTML = `$${parseFloat(solData.price).toFixed(2)}`;
+                document.getElementById('price-binancecoin').innerHTML = `$${parseFloat(bnbData.price).toFixed(2)}`;
+                document.getElementById('price-cardano').innerHTML = `$${parseFloat(adaData.price).toFixed(4)}`;
+                
+                document.getElementById('price-linea').innerHTML = \`<span style="font-size: 16px; color: #38bdf8;">L2 Network</span>\`;
+
+            } catch (error) {
+                console.error("Fetch error:", error);
+                tokens.forEach(token => {
+                    document.getElementById(\`price-\${token.id}\`).innerHTML = \`<span class="error">API Blocked</span>\`;
+                });
+            }
+        }
+
+        fetchLivePrices();
+    </script>
+</body>
+</html>
